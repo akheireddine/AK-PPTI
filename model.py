@@ -1,20 +1,41 @@
 import csv
+import sys
 
 class AffectationPPTI :
     
     
-    def __init__(self,InFileName):
-        self.filename = InFileName
+    def __init__(self,InFileName,OutFileName):
+        self.fileIN = InFileName
+        self.fileOUT = OutFileName
         self.nbH = list()
-        self.hCumule = list()
-        self.disponibilites = [ dict () for i in range(31)]
-        self.x_var = list()
+        self.idEtudiant = list()
+        self.hCumule = dict()                    #cle : id_etudiant, value : (float) nombre d'heures cumulees de l'annee
+        self.disponibilites = dict()             #cle : id_etudiant, value : (list) date de disponibilites (0,...,31)
+        self.x_var = list()                      #cle : id_etudiant, value : (list) variable du modele pour la date (0,...,31)
+        
+        
+        
+        ################# LAUNCH RESOLUTION ################
+        self.read_InPut_file()
+#        self.Solve_Model()
+#        self.write_OutPut_file()
+        ################# LAUNCH RESOLUTION ################
+
+        
+        
+        
+        
 
     def read_InPut_file(self):
-        i = 0
-        with open(self.filename,newline='') as csvfile :
+        j = 0
+        with open(self.fileIN) as csvfile :
             dreader = csv.DictReader(csvfile)
             header = dreader.fieldnames
+            
+            self.idEtudiant = header[3:]
+            self.disponibilites = {etu : list() for etu in self.idEtudiant}
+            self.hCumule = {etu : 0 for etu in self.idEtudiant}
+            
             
             for row in dreader : 
                 
@@ -22,8 +43,15 @@ class AffectationPPTI :
                 if len(row[header[0]]) == 0 :
                     nbh_tmp = row[header[2]]
                     
+                    index_virgule = nbh_tmp.find(",") 
+                    print(index_virgule)
+                    if index_virgule != -1 : 
+                        nbh_tmp = nbh_tmp.replace(',','.')
+                        
+                    
+                    print(len(nbh_tmp),nbh_tmp)
                     #Jour ferie, pas d'heure de travail
-                    if float(nbh_tmp) == 0 or nbh_tmp == '':
+                    if len(nbh_tmp) == 0 or float(nbh_tmp) == 0 :
                         self.nbH.append(0)
                         continue
                     #Jour de travail
@@ -31,54 +59,61 @@ class AffectationPPTI :
                         self.nbH.append(float(nbh_tmp))
                     
                     #Creer une variable pour chaque etudiant disponible au jour i tel jour
-                    var_created = { c : 0 for c in header[3:] }    
-                    for j in header[3:]:
-                        if row[j] == "TRUE" :
-                            var_created[j] = 1
-                    
-                    self.disponibilites[i] = var_created
-                    i += 1
+                    for etu in self.idEtudiant:
+                        if row[etu] == "TRUE" :
+                            self.disponibilites[etu].append(j)
+                            
+                    j += 1
 
                 #Recuperer les heures cumulees de chaque etudiant
                 elif len(row[header[0]] != 0):
-                    for j in header[3:] :
-                        self.hCumule[j] = float(row[j])
+                    for etu  in self.idEtudiant :
+                        self.hCumule[etu] = float(row[etu])
                     break
                 
                 
             
     
-    def write_OutPut_file(self, OutFileName):
+    def write_OutPut_file(self):
         
         s = ""
-        for x_day in self.x_var :
+        for etu,xday_list in self.x_var.items() :
             
-            for x in x_day :
-                if x.x > 0 :
-                  s += "M,"
+            for xday in xday_list :
+                if xday.x > 0 :
+                  s += etu+","
             s += "\n"
         
-        f = open(OutFileName, "a")
+        f = open(self.fileOUT, "a")
         f.write(s)
         f.close()
         
         
     
     def Solve_Model(self):
+        
         pass
+        #CREER VARIABLE DU MODELE
+        
+        
+        
+        #CREER LES CONTRAINTES DU MODELE
+        
+        
+        
+        #LANCER LE MODELE
+        
+        
+    
+        
 
 
 
 
 
-#if __name__ == '__main__':
-#    
-#    read_InPut_file()
-#    
-#    
-#    Solve_Model()
-#    
-#    
-#    write_OutPut_file()
-#    
-
+if __name__ == '__main__':
+    
+    if len(sys.argv[1:]) < 3 : 
+        exit(1)
+        
+    Affectation = AffectationPPTI(sys.argv[1],sys.argv[2])
